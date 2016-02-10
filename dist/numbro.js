@@ -122,9 +122,8 @@
             output = toFixedLarge(value, precision);
         }
         else {
-            //roundingFunction = (roundingFunction !== undefined ? roundingFunction : Math.round);
             // Multiply up by precision, round accurately, then divide and use native toFixed():
-            output = (roundingFunction(value * power) / power).toFixed(precision);
+            output = (roundingFunction(value + 'e+' + precision) / power).toFixed(precision);
         }
 
         if (optionals) {
@@ -622,7 +621,7 @@
                 d = '';
             }
         } else {
-            w = toFixed(value, null, roundingFunction);
+            w = toFixed(value, 0, roundingFunction);
         }
 
         // format number
@@ -949,49 +948,29 @@
         return false;
     };
 
-    numbro.includeLocalesInNode = function(culturesPath, culture) {
-        if (!inNodejsRuntime()) {
-            return;
-        }
-
-        var path = require('path');
-
-        culture.forEach(function(langLocaleCode) {
-            var culture = require(path.join(__dirname, culturesPath, langLocaleCode));
-            numbro.culture(culture.langLocaleCode, culture);
-        });
-    };
-
     /**
      * * @deprecated Since in version 1.6.0. It will be deleted in version 2.0
      * `loadCulturesInNode` should be used instead.
      */
-    numbro.loadLanguagesInNode = function(languagesPath) {
+    numbro.loadLanguagesInNode = function() {
         console.warn('`loadLanguagesInNode` is deprecated since version 1.6.0. Use `loadCulturesInNode` instead');
 
-        if (!inNodejsRuntime()) {
-            return;
-        }
-
-        var fs = require('fs');
-        var path = require('path');
-
-        var langFiles = fs.readdirSync(path.join(__dirname, languagesPath));
-
-        numbro.includeLocalesInNode(languagesPath, langFiles);
+        numbro.loadCulturesInNode();
     };
 
-    numbro.loadCulturesInNode = function(culturesPath) {
+    numbro.loadCulturesInNode = function() {
         if (!inNodejsRuntime()) {
             return;
         }
 
-        var fs = require('fs');
-        var path = require('path');
+        // TODO: Rename the folder in 2.0.0
+        var cultures = require('./languages');
 
-        var langFiles = fs.readdirSync(path.join(__dirname, culturesPath));
-
-        numbro.includeLocalesInNode(culturesPath, langFiles);
+        for(var langLocaleCode in cultures) {
+            if(langLocaleCode) {
+                numbro.culture(langLocaleCode, cultures[langLocaleCode]);
+            }
+        }
     };
 
     /************************************
@@ -1197,27 +1176,27 @@
         Exposing Numbro
     ************************************/
 
-    // CommonJS module is defined
-    if (hasModule) {
-        module.exports = numbro;
-    }
-
     //Todo: Rename the folder in 2.0.0
     numbro.loadCulturesInNode('languages');
 
-    /*global ender:false */
-    if (typeof ender === 'undefined') {
-        // here, `this` means `window` in the browser, or `global` on the server
-        // add `numbro` as a global object via a string identifier,
-        // for Closure Compiler 'advanced' mode
-        this.numbro = numbro;
-    }
+    // CommonJS module is defined
+    if (hasModule) {
+        module.exports = numbro;
+    } else {
+        /*global ender:false */
+        if (typeof ender === 'undefined') {
+            // here, `this` means `window` in the browser, or `global` on the server
+            // add `numbro` as a global object via a string identifier,
+            // for Closure Compiler 'advanced' mode
+            this.numbro = numbro;
+        }
 
-    /*global define:false */
-    if (typeof define === 'function' && define.amd) {
-        define([], function() {
-            return numbro;
-        });
+        /*global define:false */
+        if (typeof define === 'function' && define.amd) {
+            define([], function() {
+                return numbro;
+            });
+        }
     }
 
 }.call(typeof window === 'undefined' ? this : window));
